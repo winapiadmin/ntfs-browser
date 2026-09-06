@@ -65,13 +65,61 @@ const std::unordered_map<std::string, std::vector<std::string>>
          {"Volume Information attribute smaller than expected."}},
         {"f2a2482f50a933eeea4d1a506651884827c0952d",
          {"Index Root attribute smaller than expected."}},
+        // FileRecord::ParseAttrs() now rejects an attribute whose
+        // total_size is too small for its own header
+        // (Attr::HeaderResident/HeaderNonResident) before ever calling
+        // ParseAttr() - this testcase's attribute is undersized in exactly
+        // that way, so it's now caught earlier than
+        // ValidateResidentBounds() (see bug F1 in
+        // docs/bug-reports/2026-09-03-full-repo.md).
+        //
+        // Regenerated (root record #5, boot sector + $Volume + $MFT + root,
+        // concatenated in LoopingDiskReader's read order, same as the other
+        // from-scratch corpus files): the original 74-byte AFL find no
+        // longer reached this check at all, tripping "FileRecord Size is
+        // invalid\n" - the sector-alignment bound 3d77eb8 added to
+        // ParseBootSector() - before ParseAttrs() ever ran.
         {"resident_attr_body_out_of_bounds",
+         {"Attribute total_size too small for its header."}},
+        // A resident $INDEX_ROOT whose total_size (32) is large enough to
+        // pass the F1 check above but whose attr_offset/attr_size (24 + 100)
+        // overrun that total_size - exercises ValidateResidentBounds() in
+        // AttrResidentNoCache's ctor (src/attr-resident.cpp), the bounds
+        // check F1's fix left in place for attributes that declare a
+        // consistent total_size but a body extending past it.
+        {"resident_attr_body_exceeds_bounds",
          {"Resident attribute body exceeds attribute bounds."}},
-        // Sector Size in this testcase is 0, which now fails the earlier
-        // sector-size sanity check before cluster_size_ is even computed
-        // (see NtfsVolume::ParseBootSector).
-        {"cluster_size_null", {"Sector Size must be at least 2 bytes"}},
+        {"cluster_size_null", {"Cluster Size can't be null"}},
         {"invalid_offset_of_us", {"Offset must be lower than 1024."}},
+        // Root record (#5) whose offset_of_us (1022) clears the check above
+        // but, with sector_size = 1024 (1 sector per 1024-byte record),
+        // leaves no room for the 1-word USN fixup array that follows it -
+        // exercises the bound FileRecordHeader's ctor now enforces on
+        // offset_of_us + 2 * (1 + sectors) (bug F3, see
+        // file-record-header-fixup-tests.cpp for the matching unit test).
+        {"usn_array_exceeds_record_buffer",
+         {"Update Sequence Array does not fit within the file record "
+          "buffer."}},
+        // Root directory (#5) whose $INDEX_ALLOCATION's sole index block
+        // declares offset_of_us = 0xFFFF - exercises the equivalent bound
+        // AttrIndexAlloc<S>::ParseIndexBlock() now enforces via
+        // IndexBlockUsOffsetInBounds() on the index block's own USN fixup
+        // array (bug F4, see index-block-fixup-tests.cpp for the matching
+        // unit test).
+        {"index_block_offset_of_us_out_of_bounds",
+         {"Index Block parse error: offset_of_us out of bounds"}},
+        // clusters_per_file_record = 0xFF ("sz = -1") yields
+        // file_record_size_ = 2, far too small to hold
+        // FileRecordHeader::Data - exercises the bound
+        // NtfsVolume<S>::ParseBootSector() now enforces on file_record_size_
+        // (bug F6, see boot-sector-index-block-size-tests.cpp for the
+        // matching unit test).
+        {"file_record_size_invalid", {"FileRecord Size is invalid"}},
+        // Same as above but clusters_per_index_block = 0xFF, yielding
+        // index_block_size_ = 2 - exercises the equivalent bound on
+        // index_block_size_ (bug F6, the check
+        // boot-sector-index-block-size-tests.cpp's unit test targets).
+        {"index_block_size_invalid", {"IndexBlock Size is invalid"}},
         {"sector_size_too_small", {"Sector Size must be at least 2 bytes"}},
         {"attribute_list_extension_record_cycle",
          {"already resolved in this chain, skipping"}},

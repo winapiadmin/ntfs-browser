@@ -11,6 +11,10 @@ add_executable(
   "no-cache-lifetime-tests.cpp"
   "attribute-list-tests.cpp"
   "filename-compare-tests.cpp"
+  "parse-attrs-total-size-tests.cpp"
+  "file-record-header-fixup-tests.cpp"
+  "index-block-fixup-tests.cpp"
+  "boot-sector-index-block-size-tests.cpp"
   "fuzzer-regression-tests.cpp")
 
 target_link_libraries(NtfsBrowserTests PRIVATE ${PROJECT_NAME}
