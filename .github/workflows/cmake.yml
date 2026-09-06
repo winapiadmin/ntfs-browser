@@ -65,5 +65,6 @@ jobs:
         run: |
           mkdir build_lib
           $env:CXXFLAGS = "${{ matrix.cxx_flags }}"
-          cmake -S . -B build_lib -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install_path" -DCMAKE_CXX_COMPILER="${{ matrix.cxx }}" -DBUILD_SHARED_LIBS:BOOL=${{ matrix.build_shared_libs }} -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.ld_flags }}" || exit 1
-          cmake --build build_lib/ --target ${{ matrix.buildall }} --config ${{ matrix.build_type }} || exit 1
+          cmake -S . -B build_lib -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install_path" -DCMAKE_CXX_COMPILER="${{ matrix.cxx }}" -DBUILD_SHARED_LIBS:BOOL=${{ matrix.build_shared_libs }} -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.ld_flags }}" -DENABLE_TESTING=ON
+          cmake --build build_lib/ --target ${{ matrix.buildall }} --config ${{ matrix.build_type }}
+          ctest --output-on-failure -C ${{ matrix.build_type }} -j4
