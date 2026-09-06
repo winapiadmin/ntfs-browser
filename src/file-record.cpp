@@ -721,6 +721,14 @@ void FileRecord<S>::TraverseSubEntries(SUBENTRY_CALLBACK seCallBack,
       getAttr(AttrType::INDEX_ROOT);
   if (vec.empty())
   {
+    // INDEX_ROOT attribute not present - try INDEX_ALLOCATION directly (VCN 0)
+    const std::vector<std::unique_ptr<AttrBase<S>>>& idxAllocVec =
+        getAttr(AttrType::INDEX_ALLOCATION);
+    if (!idxAllocVec.empty())
+    {
+      std::unordered_set<ULONGLONG> visitedVcns;
+      TraverseSubNode(0, seCallBack, context, visitedVcns);
+    }
     return;
   }
 
@@ -761,19 +769,33 @@ void FileRecord<S>::TraverseSubEntries(SUBENTRY_CALLBACK seCallBack,
     }
   }
 
-  std::unordered_set<ULONGLONG> visitedVcns;
-
-  for (const IndexEntry& ie : *all_ie)
+  // If INDEX_ROOT has no entries but INDEX_ALLOCATION exists, traverse it too
+  if (all_ie->empty())
   {
-    // Visit subnode first
-    if (ie.IsSubNodePtr())
+    const std::vector<std::unique_ptr<AttrBase<S>>>& idxAllocVec =
+        getAttr(AttrType::INDEX_ALLOCATION);
+    if (!idxAllocVec.empty())
     {
-      TraverseSubNode(ie.GetSubNodeVCN(), seCallBack, context, visitedVcns);
+      std::unordered_set<ULONGLONG> visitedVcns;
+      TraverseSubNode(0, seCallBack, context, visitedVcns);
     }
+  }
+  else
+  {
+    std::unordered_set<ULONGLONG> visitedVcns;
 
-    if (ie.HasName())
+    for (const IndexEntry& ie : *all_ie)
     {
-      seCallBack(ie, context);
+      // Visit subnode first
+      if (ie.IsSubNodePtr())
+      {
+        TraverseSubNode(ie.GetSubNodeVCN(), seCallBack, context, visitedVcns);
+      }
+
+      if (ie.HasName())
+      {
+        seCallBack(ie, context);
+      }
     }
   }
 }

@@ -1,15 +1,15 @@
 #pragma once
 
 #include "attr-resident.h"
+#include "attr/volume-information.h"
+
+#include <ntfs-browser/strategy.h>
+
 #include <ntfs-browser/data/attr-header-common.h>
 #include <ntfs-browser/file-record.h>
 
 namespace NtfsBrowser
 {
-namespace Attr
-{
-struct VolumeInformation;
-}  // namespace Attr
 
 template <typename RESIDENT, Strategy S>
 class AttrVolInfo : public RESIDENT
@@ -24,7 +24,7 @@ class AttrVolInfo : public RESIDENT
   ~AttrVolInfo() override;
 
  private:
-  const Attr::VolumeInformation& vol_info_;
+  Attr::VolumeInformation vol_info_;
 
  public:
   // Get NTFS Volume Version
